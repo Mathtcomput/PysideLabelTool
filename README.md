@@ -7,4 +7,5 @@ Since it is for a private project, you should contact guangyuzhonghikari@gmail.c
 * Crop the object in the left window.
 * Press left mouse button to select polygon. If one polygon is done, press "Z" to save it. If not satisfied, press "X" to delete it.
 * Press "Star Poly" to save the result. The default save path is '../test/save/'
-
+## Dependence
+This code is written with PySide. It has not been released, thus you have to compile it.
