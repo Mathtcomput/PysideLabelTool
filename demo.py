@@ -170,6 +170,7 @@ class Label(QMainWindow, LabelTool.Ui_MainWindow):
            self.origin = QPoint(event.pos())
            self.rubberBand.setGeometry(QRect(self.origin, QSize()))
            self.rubberBand.show()
+
         elif (event.button() == Qt.LeftButton) and (self.detectOverlap(event.pos(), crop_loc)):
             self.polygon.append(QPoint(event.pos().x(), event.pos().y()))
             if len(self.polygon) >= 2:
@@ -241,6 +242,7 @@ class Label(QMainWindow, LabelTool.Ui_MainWindow):
     def crop_img(self):
         self.label_4.resize(380, 380)
         self.polygon = []
+        self.crop_img_location = []
         rect_x = self.rubberBand.pos().x() - self.label_3.pos().x()
         rect_y = self.rubberBand.pos().y() - self.label_3.pos().y()
         rect_width = self.rubberBand.width()
@@ -250,6 +252,7 @@ class Label(QMainWindow, LabelTool.Ui_MainWindow):
         gt_img_Qim = QImage(self.cur_img_path)
         ratio = float(self.gt_img_size[0])/float(self.label_img_size[0])
         print('ratio :', ratio)
+        self.crop_img_location = [int(rect_x*ratio), int(rect_y*ratio), int(rect_width*ratio), int(rect_height*ratio)]
         cropQPixmap = gt_img.copy(int(rect_x*ratio), int(rect_y*ratio), int(rect_width*ratio), int(rect_height*ratio))
         cropQImage = gt_img_Qim.copy(int(rect_x*ratio), int(rect_y*ratio), int(rect_width*ratio), int(rect_height*ratio))
         size = min(self.label_4.width(), self.label_4.height())
@@ -260,7 +263,8 @@ class Label(QMainWindow, LabelTool.Ui_MainWindow):
         self.cropQPixmap = copy.copy(cropQPixmap)
         self.cropQImage = copy.copy(cropQImage)
         self.copy_crop = copy.copy(cropQImage)
-
+        self.polygon = []
+        self.allpolygon = []
     def poly_save(self):
         self.obj_num += 1
         save_name = str(self.cur_img_path)[len(self.load_path):len(self.cur_img_path) - 4] + '_' + str(self.obj_num) + '.png'
@@ -269,6 +273,8 @@ class Label(QMainWindow, LabelTool.Ui_MainWindow):
         save_txt_name = str(self.cur_img_path)[len(self.load_path):len(self.cur_img_path) - 4] + '_' + str(self.obj_num) + '.txt'
         file_object = open(self.save_path + save_txt_name, 'w')
         file_object.write(str(self.tidy_polygon()))
+        file_object.write('\n')
+        file_object.write(str(self.crop_img_location))
         file_object.write('\n')
         file_object.write('Break Light: ')
         file_object.write(str(self.breakstate))
