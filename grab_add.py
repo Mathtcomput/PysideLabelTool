@@ -30,6 +30,7 @@ Key 's' - To save the results
 import numpy as np
 import cv2
 import sys
+import os
 
 BLUE = [255,0,0]        # rectangle color
 RED = [0,0,255]         # PR BG
@@ -50,6 +51,15 @@ rect_over = False       # flag to check if rect drawn
 rect_or_mask = 100      # flag for selecting rect or mask mode
 value = DRAW_FG         # drawing initialized to FG
 thickness = 3           # brush thickness
+def gene_imgnames(datapath, fix):
+    # '*.png' files in the folder
+    imglist = []
+    count = 0
+    for tmpfile in os.listdir(datapath):
+        if tmpfile.endswith(fix):
+            imglist.append(tmpfile)
+            count += 1
+    return imglist
 
 def onmouse(event,x,y,flags,param):
     global img,img2,drawing,value,mask,rectangle,rect,rect_or_mask,ix,iy,rect_over, all_mask
@@ -72,7 +82,7 @@ def onmouse(event,x,y,flags,param):
         cv2.rectangle(img,(ix,iy),(x,y),BLUE,2)
         rect = (ix,iy,abs(ix-x),abs(iy-y))
         rect_or_mask = 0
-        print " Now press the key 'n' a few times until no further change \n"
+        print " Now press the key 'z' a few times until no further change \n"
 
     # draw touchup curves
 
@@ -99,12 +109,39 @@ def onmouse(event,x,y,flags,param):
 print __doc__
 
 # Loading images
-if len(sys.argv) == 2:
-    filename = sys.argv[1] # for drawing purposes
+if len(sys.argv) == 3:
+    datapath = sys.argv[1]
+    dataname = sys.argv[2]
+
+
+elif len(sys.argv) == 2:
+    datapath = sys.argv[1]
+    dataname = []
 else:
-    print "No input image given, so loading default image, lena.jpg \n"
-    print "Correct Usage : python grabcut.py <filename> \n"
-    filename = '1.png'
+    print "No input image given, so loading default image, 1.png \n"
+    print "Correct Usage : python grab_add.py <pathname> \n"
+    datapath = './test/'
+    dataname = []
+
+imgnames = gene_imgnames(datapath, ".png")
+
+if len(dataname) == 0:
+    global begin_id
+    begin_id = 0
+    filename = datapath + imgnames[begin_id]
+    print('initial image is: ', filename)
+else:
+    global begin_id
+    begin_id = imgnames.index(dataname)
+    filename = datapath + imgnames[begin_id]
+    print('initial image is: ', filename)
+
+save_path = datapath + '/' + 'grab/'
+if os.path.isdir(save_path):
+    print('save label results in: ', save_path)
+else:
+    os.mkdir(save_path)
+
 
 img = cv2.imread(filename)
 img2 = img.copy()                               # a copy of original image
@@ -143,7 +180,8 @@ while(1):
     elif k == ord('s'): # save image
         bar = np.zeros((img.shape[0],5,3),np.uint8)
         res = np.hstack((img2,bar,img,bar,output))
-        cv2.imwrite('grabcut_output.png',all_mask)
+        print(save_path + imgnames[begin_id][:-4])
+        cv2.imwrite(save_path + imgnames[begin_id], all_mask)
         print " Result saved as image \n"
     elif k == ord('r'): # reset everything
         print "resetting \n"
@@ -162,9 +200,9 @@ while(1):
         all_mask = np.where((mask==1) + (mask==3) + (all_mask!=0),255,0).astype('uint8')
         output = cv2.bitwise_and(img2,img2,mask=all_mask)
 
-    elif k == ord('n'): # segment the image
+    elif k == ord('z'): # segment the image
         print """ For finer touchups, mark foreground and background after pressing keys 0-3
-        and again press 'n' \n"""
+        and again press 'z' \n"""
         if (rect_or_mask == 0):         # grabcut with rect
             bgdmodel = np.zeros((1,65),np.float64)
             fgdmodel = np.zeros((1,65),np.float64)
@@ -175,9 +213,29 @@ while(1):
             fgdmodel = np.zeros((1,65),np.float64)
             cv2.grabCut(img2,mask,rect,bgdmodel,fgdmodel,1,cv2.GC_INIT_WITH_MASK)
 
-    mask2 = np.where((mask==1) + (mask==3),255,0).astype('uint8')
-    all_mask = np.where((mask2!=0) + (all_mask!=0),255,0).astype('uint8')
-    output = cv2.bitwise_and(img2,img2,mask=all_mask)
+    elif k == ord('j'):
+        begin_id -= 1
+        begin_id = np.mod(begin_id, len(imgnames))
+        filename = datapath + imgnames[begin_id]
+        img = cv2.imread(filename)
+        img2 = img.copy()                               # a copy of original image
+        mask = np.zeros(img.shape[:2],dtype = np.uint8) # mask initialized to PR_BG
+        all_mask = np.zeros(img.shape[:2],dtype = np.uint8)
+        output = np.zeros(img.shape,np.uint8)           # output image to be shown
 
+    elif k == ord('k'):
+        begin_id += 1
+        begin_id = np.mod(begin_id, len(imgnames))
+        filename = datapath + imgnames[begin_id]
+        img = cv2.imread(filename)
+        img2 = img.copy()                               # a copy of original image
+        mask = np.zeros(img.shape[:2],dtype = np.uint8) # mask initialized to PR_BG
+        all_mask = np.zeros(img.shape[:2],dtype = np.uint8)
+        output = np.zeros(img.shape,np.uint8)           # output image to be shown
+
+    mask2 = np.where((mask==1) + (mask==3),255,0).astype('uint8')
+    mask2 = np.where((mask2!=0) + (all_mask!=0),255,0).astype('uint8')
+    output = cv2.bitwise_and(img2,img2,mask=mask2)
+    cv2.imshow('all_mask', all_mask)
 
 cv2.destroyAllWindows()
